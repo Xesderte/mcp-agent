@@ -54,4 +54,4 @@ export type CreateRepository_Input = z.infer<typeof createRepositorySchema>;
 export type CreateIssue_Input = z.infer<typeof createIssueSchema>;
 export type ListRepositories_Input = z.infer<typeof listRepositoriesSchema>;
 export type ListIssues_Input = z.infer<typeof listIssuesSchema>;
-export type createCommit_Input = z.infer<typeof createCommitSchema>;
+export type CreateCommit_Input = z.infer<typeof createCommitSchema>;
