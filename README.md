@@ -29,3 +29,15 @@ El sistema clasifica las excepciones para devolver *hints* semánticos (en lengu
 * **`NOT_FOUND`**: La IA intentó interactuar con un repositorio o issue que no existe, previniendo fallos en cadena.
 * **`RATE_LIMIT`**: Al exceder las cuotas de GitHub, el sistema sugiere esperar el ciclo de reseteo para no causar un bloqueo total de la cuenta.
 * **`UPSTREAM_ERROR` / `INTERNAL_ERROR`**: Fallos de conectividad no controlados de la API de GitHub.
+
+## 🔐 Configuración y Autenticación
+El servidor requiere un GitHub Personal Access Token (PAT) clásico.
+
+1. Ve a GitHub > Settings > Developer settings > Personal access tokens > Tokens (classic).
+2. Genera un nuevo token marcando estrictamente estos **scopes**:
+   * `repo` (Full control of private repositories)
+   * `user` (Update all user data)
+   * `admin:org` (Full control of orgs and teams, read and write org projects)
+3. Renombra el archivo `.env.example` a `.env` (o crea uno nuevo) y pega tu token:
+   ```text
+   GITHUB_TOKEN=ghp_tu_token_aqui
