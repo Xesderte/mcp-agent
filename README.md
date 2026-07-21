@@ -93,4 +93,73 @@ El flujo atómico de una operación se compone de los siguientes pasos:
 |                | <---------------------- |   - GitHub Wrapper   | <------------------- |   - Git Object |
 +----------------+    DTO Response / Error +----------------------+      JSON Data       +----------------+
 
+```
 
+
+## 🚀 Integración con Antigravity (IDE)
+
+Para utilizar este servidor MCP dentro del entorno Antigravity, debes darlo de alta en la configuración global del IDE.
+
+1. Compila el proyecto ejecutando `npm run build` en la raíz del repositorio. Esto generará la carpeta `/dist`.
+2. Abre la configuración de servidores MCP en Antigravity.
+3. Agrega la siguiente configuración, reemplazando las rutas y tokens por los tuyos:
+
+\`\`\`json
+{
+  "mcpServers": {
+    "github-mcp-agent": {
+      "command": "node",
+      "args": [
+        "/ruta/absoluta/a/tu/mcp-agent/dist/utils/server.js"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "tu_personal_access_token_aqui"
+      }
+    }
+  }
+}
+\`\`\`
+4. Reinicia Antigravity. El agente ahora tendrá acceso al catálogo de herramientas.
+
+---
+
+## 🛠️ Troubleshooting (Diagnóstico de Errores Comunes)
+
+Si el servidor no se conecta o las herramientas fallan, verifica los siguientes puntos:
+
+* **El servidor crashea inmediatamente al iniciar:**
+  * *Causa:* Aplicación del principio *Fail-Fast* en `src/config/env.ts`.
+  * *Solución:* Verifica que la variable `GITHUB_TOKEN` esté correctamente definida en el archivo `mcp_config.json` de Antigravity.
+* **Error "Cannot find module... server.js":**
+  * *Causa:* Antigravity está intentando leer el código compilado, pero no existe.
+  * *Solución:* Asegúrate de haber ejecutado `npm run build`. El archivo `mcp_config.json` debe apuntar siempre a la carpeta `/dist`, nunca a `/src`.
+* **La IA recibe un error "UNAUTHORIZED" o "FORBIDDEN":**
+  * *Causa:* El token de GitHub ha expirado o carece de los permisos necesarios.
+  * *Solución:* Genera un nuevo token asegurándote de marcar los scopes `repo`, `user` y `admin:org`.
+* **La IA inventa datos o utiliza parámetros incorrectos (Alucinación):**
+  * *Causa:* Las descripciones (`description`) en el archivo `server.ts` son ambiguas.
+  * *Solución:* Refina el *Prompt Engineering* interno modificando las descripciones de las herramientas en `ListToolsRequestSchema` para ser más directivo.
+* **Error "TypeScript exactOptionalPropertyTypes":**
+  * *Causa:* Se está enviando un valor `undefined` explícito a la API de GitHub.
+  * *Solución:* Utiliza el *Spread Operator* condicional (`...`) en los handlers para omitir por completo las propiedades que no fueron proporcionadas por la IA.
+
+  ## 🧪 Evidencia de Testing y Verificación Manual (Wiring)
+
+El servidor ha sido sometido a pruebas unitarias y de integración determinísticas mediante `Vitest`, simulando respuestas de la API de GitHub (Mocking de casos de éxito, 401 y 403) para garantizar su robustez sin depender de la red.
+
+Adicionalmente, se realizó la comprobación manual del flujo (Wiring) a través de MCP Inspector para confirmar el correcto enrutamiento de datos.
+
+**Comando de ejecución del servidor de pruebas:**
+\`\`\`bash
+npx @modelcontextprotocol/inspector node dist/utils/server.js
+\`\`\`
+
+**Prueba de Input Válido (Happy Path):**
+* **Tool ejecutada:** `list_repositories`
+* **Parámetros enviados:** `{ "page": 1, "per_page": 5 }`
+* **Resultado observado:** El servidor procesó la petición, se conectó a GitHub y retornó exitosamente el DTO con la lista de repositorios, incluyendo el campo `url` y `default_branch`.
+
+**Prueba de Input Inválido (Rechazo Zod):**
+* **Tool ejecutada:** `create_issue`
+* **Parámetros enviados:** `{ "repo": "mcp-agent" }` *(Falta el parámetro requerido 'owner' y 'title')*
+* **Resultado observado:** El request no alcanzó la API de GitHub. El servidor interceptó la petición en la capa de esquemas y devolvió un error estructurado validando la falla del contrato: `Validation Error: "owner" is required`.
