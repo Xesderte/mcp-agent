@@ -70,3 +70,27 @@ El servidor expone las siguientes herramientas (tools) que el agente de IA puede
 * **Descripción:** Permite crear o actualizar un archivo directamente en una rama específica. Esta operación implementa el flujo atómico interno de Git (Blob -> Tree -> Commit -> Ref) para garantizar la inmutabilidad del historial del repositorio.
 * **Parámetros:** `owner` (string, requerido), `repo` (string, requerido), `branch` (string, requerido), `path` (string, requerido, ruta exacta del archivo con extensión), `content` (string, requerido), `message` (string, requerido).
 * **Prompt de ejemplo:** *"En el repositorio 'mcp-agent-test' de 'mi-usuario', crea o actualiza el archivo 'src/index.js' en la rama 'main' agregando un `console.log('Hola Mundo');`. El mensaje del commit debe ser 'feat: agrega log inicial'."*
+
+## 🏗️ Arquitectura del Sistema y Flujo de Peticiones
+
+El servidor se rige bajo la arquitectura del Protocolo de Contexto de Modelos (MCP), utilizando una comunicación basada en la entrada/salida estándar (`stdio`) mediante JSON-RPC 2.0.
+
+El flujo atómico de una operación se compone de los siguientes pasos:
+
+1. **Host (IDE):** Antigravity captura el prompt del usuario.
+2. **Client (LLM):** La Inteligencia Artificial analiza el prompt, lee los contratos Zod (`ListTools`) y decide qué herramienta invocar.
+3. **Transport (stdio):** El Host envía la petición JSON-RPC a nuestro servidor Node.js.
+4. **Server (MCP):** El `server.ts` valida los argumentos entrantes mediante esquemas estrictos (`safeParse`).
+5. **Wrapper (Adapter):** La petición se envía a través de `GitHubOperations` para manejar posibles errores externos y rastrear el Rate Limit.
+6. **API Externa:** Octokit muta o lee el estado en la base de datos de GitHub.
+7. **DTO:** El servidor extrae solo la información relevante y retorna la respuesta procesada al LLM.
+
+```text
++----------------+       JSON-RPC 2.0      +----------------------+       REST API       +----------------+
+|                |      (via stdio)        |                      |    (HTTPS / Auth)    |                |
+|  Antigravity   | ----------------------> |   MCP Server (Node)  | -------------------> |   GitHub API   |
+|  (Host + LLM)  |                         |   - Zod Validation   |                      |   - Repos      |
+|                | <---------------------- |   - GitHub Wrapper   | <------------------- |   - Git Object |
++----------------+    DTO Response / Error +----------------------+      JSON Data       +----------------+
+
+
