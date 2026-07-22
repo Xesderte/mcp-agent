@@ -163,3 +163,29 @@ npx @modelcontextprotocol/inspector node dist/utils/server.js
 * **Tool ejecutada:** `create_issue`
 * **Parámetros enviados:** `{ "repo": "mcp-agent" }` *(Falta el parámetro requerido 'owner' y 'title')*
 * **Resultado observado:** El request no alcanzó la API de GitHub. El servidor interceptó la petición en la capa de esquemas y devolvió un error estructurado validando la falla del contrato: `Validation Error: "owner" is required`.
+
+## 🚀 Arquitectura Funcional
+
+El servidor opera bajo una arquitectura de integración directa y resiliente:
+[ Usuario ] -> [ Antigravity/Agente ] -> [ MCP Server ] -> [ GitHub API ]
+
+## 🔍 Troubleshooting (Solución de Errores)
+
+El servidor utiliza una taxonomía de errores estricta para garantizar resiliencia. Todos los logs operativos se envían a `stderr` para proteger el canal de comunicación del protocolo MCP.
+
+| Error (code) | Causa Probable | Acción Recomendada |
+|--------------|----------------|--------------------|
+| `AUTH_ERROR` | Falta o error en variable `GITHUB_TOKEN`. | Revisa el archivo `.env` o la config de Antigravity. (No reintenta). |
+| `VALIDATION_ERROR` | La IA omitió parámetros requeridos. | El sistema corrige a la IA automáticamente indicando `FIX_INPUT`. (No reintenta). |
+| `GITHUB_API_ERROR` (403) | Límite de tasa (Rate limit) excedido. | El servidor intercepta el error y aplica **Exponential Backoff** automáticamente para reintentar de forma segura. |
+| `NOT_FOUND` (404) | Repositorio o recurso no encontrado. | Traducido para el agente como: *"The repository [nombre] was not found. Please check the name and try again."* (No reintenta). |
+
+## ✅ Release Checklist
+
+- [x] El archivo `.env` no está commiteado (verificado en `.gitignore`).
+- [x] `.env.example` está actualizado y cubre todas las variables requeridas.
+- [x] Los logs van exclusivamente a `stderr`, sin contaminar `stdout`.
+- [x] Los errores incluyen `code`, `action` y `retryable`.
+- [x] Retry limitado aplicado exclusivamente para errores transitorios (ej. Error 403 Rate Limit).
+- [x] El README cubre Quickstart, Tools, Troubleshooting y al menos 5 Prompts de ejemplo.
+- [x] Se generaron clases de error custom (`ValidationError`, `AuthenticationError`, `GitHubAPIError`).
