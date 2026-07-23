@@ -47,6 +47,9 @@ export class GitHubAPIError extends AppError {
     }
 }
 
+
+//
+
 // --- 2. TU ESTRUCTURA ORIGINAL (Mantenida para no romper tus tests) ---
 export interface MCPError{
     isError: true;
