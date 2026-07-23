@@ -1,0 +1,1 @@
+# Éxito Total\n\nEl servidor MCP funciona de maravilla.
